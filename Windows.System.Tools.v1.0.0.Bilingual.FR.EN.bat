@@ -24,6 +24,10 @@ set "lang_fr_username_prompt=Nom d'utilisateur a modifier : "
 set "lang_fr_process_name_prompt=Nom du processus a tuer (ex: chrome.exe) : "
 set "lang_fr_cleanmgr_info=Lancement de cleanmgr /sageset:1 puis cleanmgr /sagerun:1..."
 set "lang_fr_cleanmgr_pause=Configuration enregistree. Appuyez sur Entree pour lancer le nettoyage... "
+set "lang_fr_confirm_action=Etes-vous sur ? Cette action ne peut pas etre annulee. (O/N) : "
+set "lang_fr_confirm_warning=[AVERTISSEMENT] Operation destructrice !"
+set "lang_fr_operation_cancelled=Operation annulee."
+set "lang_fr_operation_executed=Operation executee avec succes."
 
 set "lang_fr_diagnostic_title=DIAGNOSTIC ET REPARATION DU SYSTEME"
 set "lang_fr_diag_1_desc=Repare les fichiers systeme"
@@ -100,6 +104,10 @@ set "lang_en_username_prompt=Username to modify: "
 set "lang_en_process_name_prompt=Process name to kill (e.g.: chrome.exe): "
 set "lang_en_cleanmgr_info=Launching cleanmgr /sageset:1 then cleanmgr /sagerun:1..."
 set "lang_en_cleanmgr_pause=Configuration saved. Press Enter to start cleanup... "
+set "lang_en_confirm_action=Are you sure? This action cannot be undone. (Y/N): "
+set "lang_en_confirm_warning=[WARNING] Destructive operation!"
+set "lang_en_operation_cancelled=Operation cancelled."
+set "lang_en_operation_executed=Operation executed successfully."
 
 set "lang_en_diagnostic_title=SYSTEM DIAGNOSTIC AND REPAIR"
 set "lang_en_diag_1_desc=Repairs system files"
@@ -322,6 +330,30 @@ echo ============================================================
 set /p sub_choice="%lang_prompt%"
 goto :eof
 
+:: --- Fonction de confirmation pour actions destructrices ---
+:confirm_action
+setlocal enabledelayedexpansion
+echo.
+echo ============================================================
+echo %lang_confirm_warning%
+echo ============================================================
+set /p confirm_response="%lang_confirm_action%"
+if /i "%confirm_response%"=="o" (
+    if /i "%current_lang%"=="fr" (
+        endlocal
+        exit /b 1
+    )
+)
+if /i "%confirm_response%"=="y" (
+    if /i "%current_lang%"=="en" (
+        endlocal
+        exit /b 1
+    )
+)
+echo %lang_operation_cancelled%
+timeout /t 2 >nul
+endlocal
+exit /b 0
 
 :: --- Boucle du menu principal ---
 :main_menu
@@ -591,15 +623,30 @@ if "%sub_choice%"=="2" (
     echo %lang_cleanmgr_info%
     start cmd.exe /k "cleanmgr /sageset:1 && echo %lang_cleanmgr_pause% && pause && cleanmgr /sagerun:1 && pause"
 )
-if "%sub_choice%"=="3" start cmd.exe /k "del /q/f/s %TEMP%\* && pause"
-if "%sub_choice%"=="4" start cmd.exe /k "rd /s /q C:\$Recycle.Bin && pause"
+if "%sub_choice%"=="3" (
+    call :confirm_action
+    if !errorlevel! equ 1 start cmd.exe /k "del /q/f/s %TEMP%\* && pause"
+)
+if "%sub_choice%"=="4" (
+    call :confirm_action
+    if !errorlevel! equ 1 start cmd.exe /k "rd /s /q C:\$Recycle.Bin && pause"
+)
 if "%sub_choice%"=="5" start cmd.exe /k "ipconfig /flushdns && pause"
-if "%sub_choice%"=="6" start cmd.exe /k "netsh winsock reset && pause"
-if "%sub_choice%"=="7" start cmd.exe /k "netsh int ip reset && pause"
+if "%sub_choice%"=="6" (
+    call :confirm_action
+    if !errorlevel! equ 1 start cmd.exe /k "netsh winsock reset && pause"
+)
+if "%sub_choice%"=="7" (
+    call :confirm_action
+    if !errorlevel! equ 1 start cmd.exe /k "netsh int ip reset && pause"
+)
 if "%sub_choice%"=="8" start cmd.exe /k "powercfg /hibernate off && pause"
 if "%sub_choice%"=="9" start cmd.exe /k "powercfg /energy && pause"
 if "%sub_choice%"=="10" start cmd.exe /k "powercfg /batteryreport && pause"
-if "%sub_choice%"=="11" start cmd.exe /k "shutdown /r /o && pause"
+if "%sub_choice%"=="11" (
+    call :confirm_action
+    if !errorlevel! equ 1 start cmd.exe /k "shutdown /r /o && pause"
+)
 if "%sub_choice%"=="99" goto main_menu
 if "%sub_choice%"=="0" goto bye
 call :error "%lang_invalid_choice%"
